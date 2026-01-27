@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Docker volumes
+ollama_storage/
+chroma_data/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+.claude/

@@ -1,0 +1,71 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: fintech-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_storage:/root/.ollama
+    restart: unless-stopped
+
+  # Pull models once (idempotent) so students don't forget
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: fintech-ollama-init
+    depends_on:
+      - ollama
+    entrypoint: ["/bin/sh","-lc"]
+    command: >
+      "echo 'Pulling models (first run may take a while)...' &&
+       ollama pull qwen2.5:1.5b &&
+       ollama pull nomic-embed-text &&
+       echo 'Done.'"
+    volumes:
+      - ./ollama_storage:/root/.ollama
+    restart: "no"
+
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: fintech-chroma
+    ports:
+      - "8001:8000"   # optional: for debugging from host
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+      - ALLOW_RESET=true
+      - IS_PERSISTENT=true
+      - PERSIST_DIRECTORY=/chroma/chroma
+    volumes:
+      - ./chroma_data:/chroma/chroma
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: fintech-api
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000          # IMPORTANT: internal Chroma port is 8000
+      - CHROMA_COLLECTION=insurtech_lab8
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LLM_MODEL=qwen2.5:1.5b
+      - EMBED_MODEL=nomic-embed-text
+      - CHUNK_SIZE=500
+      - CHUNK_OVERLAP=80
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - chromadb
+      - ollama
+      - ollama-init
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: fintech-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped

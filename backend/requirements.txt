@@ -1,0 +1,16 @@
+fastapi==0.115.6
+uvicorn[standard]==0.30.6
+
+# RAG stack (LangChain + Ollama)
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-ollama==0.2.2
+langchain-text-splitters==0.3.4
+
+# Chroma client
+chromadb==0.5.23
+
+# PDF parsing (text-based PDF from Word should work well)
+pypdf==5.1.0
+
+python-multipart==0.0.12
